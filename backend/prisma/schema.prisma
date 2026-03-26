@@ -1,13 +1,47 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RateRequest {
+  id          String      @id @default(uuid())
+  sessionId   String
+  originZip   String
+  destZip     String
+  weightLbs   Float
+  lengthIn    Float?
+  widthIn     Float?
+  heightIn    Float?
+  serviceCode String?
+  createdAt   DateTime    @default(now())
+  quotes      RateQuote[]
+
+  @@index([sessionId])
+}
+
+model RateQuote {
+  id            String      @id @default(uuid())
+  carrier       String
+  serviceCode   String
+  serviceLabel  String
+  totalCharge   Float
+  currency      String
+  estimatedDays Int?
+  rateRequestId String
+  rateRequest   RateRequest @relation(fields: [rateRequestId], references: [id])
+}
+
+model AuthToken {
+  id          String   @id @default(uuid())
+  carrier     String   @unique
+  accessToken String
+  expiresAt   DateTime
+  updatedAt   DateTime @updatedAt
 }
