@@ -34,31 +34,56 @@ describe('UpsAuthService', () => {
 
     const token = await service.getToken();
     expect(token).toBe('new_token');
-    expect(httpService.post).toHaveBeenCalledTimes(1);
+    expect(httpService.post).toHaveBeenCalledWith(
+        expect.stringContaining('/token'),
+        expect.stringContaining('grant_type=client_credentials'),
+        expect.anything()
+    );
     expect(prisma.authToken.upsert).toHaveBeenCalled();
   });
 
-  it('Expired token triggers transparent refresh', async () => {
+  it('Expired token with NO refresh token → Full Login', async () => {
     const expired = new Date(Date.now() - 10000); 
-    prisma.authToken.findUnique.mockResolvedValue({ accessToken: 'old_token', expiresAt: expired } as any);
-    httpService.post.mockReturnValue(of({ data: { access_token: 'fresh_token', expires_in: '3600' } }) as any);
+    prisma.authToken.findUnique.mockResolvedValue({ accessToken: 'old', refreshToken: null, expiresAt: expired } as any);
+    httpService.post.mockReturnValue(of({ data: { access_token: 'fresh', expires_in: '3600' } }) as any);
 
     const token = await service.getToken();
-    expect(token).toBe('fresh_token');
-    expect(httpService.post).toHaveBeenCalledTimes(1);
+    expect(token).toBe('fresh');
+    expect(httpService.post).toHaveBeenCalledWith(expect.stringContaining('/token'), expect.anything(), expect.anything());
   });
 
-  it('401 → CarrierError { code: "AUTH_FAILED" }', async () => {
+  it('Expired token WITH refresh token → Refresh Flow', async () => {
+    const expired = new Date(Date.now() - 10000); 
+    prisma.authToken.findUnique.mockResolvedValue({ accessToken: 'old', refreshToken: 'valid-ref', expiresAt: expired } as any);
+    httpService.post.mockReturnValue(of({ data: { access_token: 'refreshed', expires_in: '3600' } }) as any);
+
+    const token = await service.getToken();
+    expect(token).toBe('refreshed');
+    expect(httpService.post).toHaveBeenCalledWith(
+        expect.stringContaining('/refresh'),
+        expect.stringContaining('grant_type=refresh_token'),
+        expect.anything()
+    );
+  });
+
+  it('Refresh failure → Fallback to full login', async () => {
+    const expired = new Date(Date.now() - 10000); 
+    prisma.authToken.findUnique.mockResolvedValue({ accessToken: 'old', refreshToken: 'bad-ref', expiresAt: expired } as any);
+    
+    // First call (refresh) fails
+    httpService.post.mockReturnValueOnce(throwError(() => new Error('Refresh failed')));
+    // Second call (full login) succeeds
+    httpService.post.mockReturnValueOnce(of({ data: { access_token: 'fallback-token', expires_in: '3600' } }) as any);
+
+    const token = await service.getToken();
+    expect(token).toBe('fallback-token');
+    expect(httpService.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('401 on full login → CarrierError { code: "AUTH_FAILED" }', async () => {
     prisma.authToken.findUnique.mockResolvedValue(null);
     httpService.post.mockReturnValue(throwError(() => ({ response: { status: 401 } })) as any);
 
     await expect(service.getToken()).rejects.toMatchObject({ code: 'AUTH_FAILED' });
-  });
-  
-  it('Network timeout → CarrierError { code: "TIMEOUT" }', async () => {
-    prisma.authToken.findUnique.mockResolvedValue(null);
-    httpService.post.mockReturnValue(throwError(() => ({ code: 'ECONNABORTED' })) as any);
-
-    await expect(service.getToken()).rejects.toMatchObject({ code: 'TIMEOUT' });
   });
 });

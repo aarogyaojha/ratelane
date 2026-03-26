@@ -39,9 +39,10 @@ model RateQuote {
 }
 
 model AuthToken {
-  id          String   @id @default(uuid())
-  carrier     String   @unique
-  accessToken String
-  expiresAt   DateTime
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  carrier      String   @unique
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime
+  updatedAt    DateTime @updatedAt
 }
