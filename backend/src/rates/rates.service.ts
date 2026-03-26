@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpsAdapter } from '../carriers/ups/ups.adapter';
+import { ICarrier, CARRIERS } from '../carriers/carrier.interface';
 import { RateRequestDto } from './dto/rate-request.dto';
+import { RateQuote } from '@prisma/client';
 
 @Injectable()
 export class RatesService {
+  private readonly logger = new Logger(RatesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly upsAdapter: UpsAdapter,
+    @Inject(CARRIERS) private readonly carriers: ICarrier[],
   ) {}
 
   async getRates(dto: RateRequestDto, sessionId: string) {
@@ -24,12 +27,28 @@ export class RatesService {
       },
     });
 
-    const upsQuotes = await this.upsAdapter.getRates(request);
-    
-    if (upsQuotes.length > 0) {
+    const allQuotes: RateQuote[] = [];
+
+    // Aggregate rates from all carriers
+    for (const carrier of this.carriers) {
+      try {
+        if (carrier.capabilities.rates) {
+          const carrierQuotes = await carrier.capabilities.rates.getRates(request);
+          allQuotes.push(...carrierQuotes);
+        }
+      } catch (err) {
+        this.logger.error(`Failed to get rates for ${carrier.carrierId}: ${err.message}`, err.stack);
+      }
+    }
+
+    // Filter by service level if a specific code was requested
+    const filteredQuotes = dto.serviceCode 
+      ? allQuotes.filter(q => q.serviceCode === dto.serviceCode)
+      : allQuotes;
+
+    if (filteredQuotes.length > 0) {
       await this.prisma.rateQuote.createMany({
-        data: upsQuotes.map(q => ({
-          id: q.id,
+        data: filteredQuotes.map(q => ({
           carrier: q.carrier,
           serviceCode: q.serviceCode,
           serviceLabel: q.serviceLabel,
@@ -41,7 +60,7 @@ export class RatesService {
       });
     }
 
-    return upsQuotes;
+    return filteredQuotes;
   }
 
   async getHistory(sessionId: string) {

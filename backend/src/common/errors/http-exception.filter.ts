@@ -13,7 +13,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let code = 'SERVER_ERROR';
-    let carrier = undefined;
+    let carrier: string | undefined = undefined;
     
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -39,12 +39,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(exception);
     }
 
-    response.status(status).json({
+    const responseBody: any = {
       statusCode: status,
       code,
       message,
-      ...(carrier && { carrier }),
       timestamp: new Date().toISOString(),
-    });
+    };
+    if (carrier) {
+      responseBody.carrier = carrier;
+    }
+
+    response.status(status).json(responseBody);
   }
 }
