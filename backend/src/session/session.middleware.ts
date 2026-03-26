@@ -1,13 +1,13 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class SessionMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     let sessionId = req.signedCookies ? req.signedCookies['cybership_session'] : undefined;
     if (!sessionId) {
-      sessionId = uuidv4();
+      sessionId = randomUUID();
       res.cookie('cybership_session', sessionId, {
         httpOnly: true,
         signed: true,

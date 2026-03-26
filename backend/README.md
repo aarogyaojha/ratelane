@@ -1,98 +1,105 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Cybership — Carrier Integration Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A production-grade shipping carrier integration service built with NestJS and TypeScript. This service provides a normalized interface for fetching shipping rates from multiple carriers (starting with UPS).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Overview
 
-## Description
+This project was built to demonstrate a modular and extensible architecture for multi-carrier shipping integrations. It includes:
+- **Normalized Domain Models**: A clean abstraction that hides the complexity of carrier-specific APIs (JSON/XML).
+- **Secure Authentication**: UPS OAuth 2.0 implementation with token caching, reuse, and automatic refresh.
+- **Pluggable Architecture**: Easy to add new carriers or operations (FedEx, USPS, Label Generation) without modifying core logic.
+- **Robust Error Handling**: Structured, domain-specific errors for common carrier failure modes (Auth, Rate Limiting, Timeouts).
+- **History Tracking**: All rate requests and quotes are persisted for audit and performance analysis.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 🏗️ Architecture Design
 
+### 1. Extensibility (The "Open/Closed" Principle)
+The service uses a **Provider Registration pattern**. Any carrier (e.g., UPS, FedEx, DHL) implements a common `ICarrier` interface and is registered in the `RatesModule`.
+- The `RatesService` iterates over all registered carriers to aggregate quotes.
+- Adding a new carrier is as simple as creating a new module and adding its adapter to the `CARRIERS` provider array in `RatesModule`.
+
+### 2. Normalized Domain vs. Carrier Raw Models
+The service strictly separates internal domain types from external carrier formats.
+- **Request Building**: Carriers-specific logic is encapsulated in adapters (e.g., `UpsRatesService.buildPayload`).
+- **Response Mapping**: Raw JSON responses are parsed into normalized `RateQuote` objects, ensuring the frontend never sees UPS's internal naming conventions.
+
+### 3. Authentication Management
+Auth tokens are treated as a shared resource.
+- `UpsAuthService` manages the OAuth 2.0 lifecycle.
+- Tokens are stored in the database with an expiration timestamp.
+- The service only makes a network call to UPS for a new token if the current one is missing or expired.
+
+### 4. Error Handling
+We uses a custom `CarrierError` class that maps carrier-specific HTTP statuses (429, 401, etc.) into a consistent format. This allows the frontend to provide meaningful feedback (e.g., "Rate limit exceeded" vs "General Error").
+
+---
+
+## 🛠️ Tech Stack
+- **Backend**: [NestJS](https://nestjs.com/) (Node.js framework)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) with [Prisma ORM](https://www.prisma.io/)
+- **Frontend**: [Next.js 14](https://nextjs.org/) (App Router) + [Tailwind CSS](https://tailwindcss.com/)
+- **Validation**: [Zod](https://zod.dev/) & [class-validator](https://github.com/typestack/class-validator)
+- **Testing**: [Jest](https://jestjs.io/) for unit and integration tests
+
+---
+
+## 🏃 Getting Started
+
+### 1. Prerequisites
+- Node.js 18+
+- PostgreSQL instance running
+
+### 2. Installation
 ```bash
-$ npm install
+# Clone the repository
+git clone <repo-url>
+cd cybership
+
+# Install dependencies for both folders
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-## Compile and run the project
-
+### 3. Environment Setup
+Copy the example environment file and fill in your values (dummy values work for testing the logic):
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp backend/.env.example backend/.env
 ```
 
-## Run tests
-
+### 4. Database Setup
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cd backend
+npx prisma migrate dev --name init
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 5. Running the Application
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# In the backend directory
+npm run start:dev
+
+# In a new terminal, in the frontend directory
+npm run dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 6. Running Tests
+The project includes integration tests with stubbed API responses to verify the request/response logic without a live UPS key.
+```bash
+cd backend
+npm run test
+```
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## ✨ Future Improvements (Next Steps)
+Given more time, I would:
+1. **Implement Job Queues**: For large batches of quotes across many carriers.
+2. **Webhooks Integration**: Support carrier tracking updates via incoming hooks.
+3. **Advanced Caching**: Cache identical rate requests (same origin/dest/weight) for a short duration to save API costs.
+4. **Performance Monitoring**: Add instrumentation to track carrier latency and error rates.
+5. **Circuit Breaker**: Implement circuit breakers for carriers that are intermittently failing to prevent cascading failures.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+*Good luck with the evaluation!*
