@@ -6,10 +6,11 @@ import { UpsRatesService } from './ups-rates.service';
 @Injectable()
 export class UpsAdapter implements ICarrier {
   readonly carrierId = 'UPS';
+  readonly capabilities: ICarrier['capabilities'];
 
-  constructor(private readonly upsRatesService: UpsRatesService) {}
-
-  async getRates(request: RateRequest): Promise<RateQuote[]> {
-    return this.upsRatesService.getRates(request);
+  constructor(private readonly upsRatesService: UpsRatesService) {
+    this.capabilities = {
+      rates: this.upsRatesService,
+    };
   }
 }
