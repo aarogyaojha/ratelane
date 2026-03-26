@@ -11,17 +11,12 @@ cybership/
   backend/     # NestJS + Prisma + PostgreSQL
 
 ## Architecture Decisions
-- NestJS for the API: modules, DI, pipes, and guards make carrier
-  abstraction clean and testable
-- Next.js App Router: API routes act as a secure proxy to NestJS,
-  keeping cookies HttpOnly end-to-end
-- shadcn/ui: unstyled accessible components, no bloated CSS framework
-- Prisma + PostgreSQL: type-safe queries, migration history, easy to
-  extend with new models
-- ICarrier interface: every carrier implements the same contract —
-  adding FedEx never touches UPS code
-- Cookies: anonymous session tracking via signed HttpOnly cookies,
-  no login required
+- Capability-Based Carrier Engine: Every carrier implements a `capabilities` map. Adding **FedEx** or new operations like **Tracking** never touches existing UPS rating code.
+- OAuth 2.0 Persistence & Refresh: Full token lifecycle management (Acquire -> Store -> Refresh) is handled transparently in the background.
+- UPS v2409 Compliance: Strictly follows the latest UPS Rating API docs, including mandatory `ShopTimeInTransit` implementation.
+- Error Handling: Structured, machine-readable `CarrierError` responses with global HTTP status mapping.
+- Integration Testing: High-fidelity end-to-end tests using stubbed HTTP responses based on realistic carrier payloads.
+- Cookies: Anonymous session tracking via signed HttpOnly cookies for a frictionless user experience.
 
 ## Prerequisites
 - Node.js >= 18
