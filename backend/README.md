@@ -54,7 +54,7 @@ Uses a custom `CarrierError` class that maps carrier-specific HTTP statuses (429
 ### 2. Installation
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/aarogyaojha/cybership.git
 cd cybership
 
 # Install dependencies for both folders

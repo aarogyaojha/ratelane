@@ -38,7 +38,7 @@ describe('RatesService', () => {
     const mockRequest = { id: 'req-1', ...dto };
     const mockQuote = { carrier: 'MOCK', serviceCode: 'S1', totalCharge: 10, currency: 'USD' };
 
-    prisma.rateRequest.create.mockResolvedValue(mockRequest);
+    (prisma.rateRequest.create as jest.Mock).mockResolvedValue(mockRequest);
     (carrierMock.capabilities.rates.getRates as jest.Mock).mockResolvedValue([mockQuote]);
 
     const result = await service.getRates(dto as any, sessionId);
@@ -57,7 +57,7 @@ describe('RatesService', () => {
       { carrier: 'MOCK', serviceCode: 'S2', totalCharge: 20 },
     ];
 
-    prisma.rateRequest.create.mockResolvedValue({ id: 'req-1' });
+    (prisma.rateRequest.create as jest.Mock).mockResolvedValue({ id: 'req-1' });
     (carrierMock.capabilities.rates.getRates as jest.Mock).mockResolvedValue(mockQuotes);
 
     const result = await service.getRates(dto as any, 'sid');
