@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 213 31% 91%;
+    --card: 222 40% 9%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 262 83% 68%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 222 30% 16%;
+    --input: 222 30% 14%;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, hsla(217, 91%, 60%, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 0%, hsla(262, 83%, 68%, 0.07) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: hsla(222, 40%, 9%, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsla(213, 31%, 91%, 0.07);
+  }
+
+  .glass-hover {
+    transition: all 0.2s ease;
+  }
+  .glass-hover:hover {
+    background: hsla(222, 40%, 12%, 0.85);
+    border-color: hsla(217, 91%, 60%, 0.25);
+    box-shadow: 0 0 24px hsla(217, 91%, 60%, 0.07);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(217, 91%, 65%) 0%, hsl(262, 83%, 72%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 40px hsla(217, 91%, 60%, 0.1);
+  }
+
+  .mono {
+    font-family: 'Courier New', Courier, monospace;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: hsl(215, 20%, 55%);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-row-hover {
+    transition: background 0.15s ease;
+  }
+  .card-row-hover:hover {
+    background: hsla(217, 91%, 60%, 0.05);
+  }
+}
