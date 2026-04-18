@@ -1,68 +1,111 @@
-"use client"
+"use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { MapPin, Weight, Ruler, ChevronRight, Loader2 } from "lucide-react"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/auth-context";
+import { MapPin, Weight, Ruler, ChevronRight, Loader2 } from "lucide-react";
 
-const formSchema = z.object({
-  originZip: z.string().min(5),
-  destZip: z.string().min(5),
-  weightLbs: z.coerce.number().min(0.1),
-  lengthIn: z.coerce.number().optional().or(z.literal("").transform(() => undefined)),
-  widthIn: z.coerce.number().optional().or(z.literal("").transform(() => undefined)),
-  heightIn: z.coerce.number().optional().or(z.literal("").transform(() => undefined)),
-  serviceCode: z.string().optional(),
-})
-
-export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) => void }) {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      originZip: "", destZip: "", weightLbs: 1, serviceCode: "",
-    },
+const formSchema = z
+  .object({
+    originZip: z.string().min(5),
+    destZip: z.string().min(5),
+    weightLbs: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0),
+    lengthIn: z.string().optional(),
+    widthIn: z.string().optional(),
+    heightIn: z.string().optional(),
+    serviceCode: z.string().optional(),
   })
+  .transform((data) => ({
+    ...data,
+    weightLbs: Number(data.weightLbs),
+    lengthIn: data.lengthIn ? Number(data.lengthIn) : undefined,
+    widthIn: data.widthIn ? Number(data.widthIn) : undefined,
+    heightIn: data.heightIn ? Number(data.heightIn) : undefined,
+  }));
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setLoading(true)
+type FormSchema = z.infer<typeof formSchema>;
+
+export function RateForm({
+  onRatesFetched,
+}: {
+  onRatesFetched: (rates: any[]) => void;
+}) {
+  const { toast } = useToast();
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const form = useForm<FormSchema>({
+    resolver: zodResolver(formSchema) as any,
+    defaultValues: {
+      originZip: "",
+      destZip: "",
+      weightLbs: 1,
+      serviceCode: "",
+    },
+  });
+
+  async function onSubmit(values: FormSchema) {
+    if (!token) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please log in to fetch rates",
+      });
+      return;
+    }
+
+    setLoading(true);
     try {
-      const payload = { ...values }
-      if (!payload.serviceCode) delete payload.serviceCode
+      const payload = { ...values };
+      if (!payload.serviceCode) delete payload.serviceCode;
 
-      const res = await fetch('/api/rates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/rates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
-      })
+      });
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch rates')
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to fetch rates");
 
-      onRatesFetched(data)
+      onRatesFetched(data);
     } catch (err: any) {
       toast({
         variant: "destructive",
         title: "Error",
         description: err.message,
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
-
         {/* ZIP Codes */}
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -75,7 +118,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
               name="originZip"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">Origin ZIP</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Origin ZIP
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="90210"
@@ -92,7 +137,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
               name="destZip"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">Destination ZIP</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Destination ZIP
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="10001"
@@ -112,7 +159,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
           <div className="flex items-center gap-2 mb-3">
             <Weight className="w-4 h-4 text-violet-400" />
             <span className="section-label">Weight & Dimensions</span>
-            <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
+            <span className="text-xs text-muted-foreground/60 ml-1">
+              (optional)
+            </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <FormField
@@ -120,7 +169,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
               name="weightLbs"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">Weight <span className="text-muted-foreground/50">lbs</span></FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Weight <span className="text-muted-foreground/50">lbs</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -138,7 +189,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
               name="lengthIn"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">Length <span className="text-muted-foreground/50">in</span></FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Length <span className="text-muted-foreground/50">in</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -156,7 +209,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
               name="widthIn"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">Width <span className="text-muted-foreground/50">in</span></FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Width <span className="text-muted-foreground/50">in</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -174,7 +229,9 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
               name="heightIn"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground text-xs font-medium">Height <span className="text-muted-foreground/50">in</span></FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs font-medium">
+                    Height <span className="text-muted-foreground/50">in</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -201,7 +258,10 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
             name="serviceCode"
             render={({ field }) => (
               <FormItem>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger className="bg-secondary/50 border-border/60 focus:border-emerald-500/60 transition-all duration-200">
                       <SelectValue placeholder="All Services" />
@@ -225,12 +285,19 @@ export function RateForm({ onRatesFetched }: { onRatesFetched: (rates: any[]) =>
           disabled={loading}
           className="w-full h-11 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 border-0 font-semibold tracking-wide transition-all duration-200 shadow-lg shadow-blue-900/30 hover:shadow-blue-900/50 hover:scale-[1.01] active:scale-[0.99]"
         >
-          {loading
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Fetching Rates...</>
-            : <><span>Get Rates</span><ChevronRight className="w-4 h-4 ml-2" /></>
-          }
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Fetching Rates...
+            </>
+          ) : (
+            <>
+              <span>Get Rates</span>
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </>
+          )}
         </Button>
       </form>
     </Form>
-  )
+  );
 }

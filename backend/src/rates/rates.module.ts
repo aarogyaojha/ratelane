@@ -1,16 +1,17 @@
-import { Module, MiddlewareConsumer } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { RatesController } from './rates.controller';
 import { RatesService } from './rates.service';
-import { SessionMiddleware } from '../session/session.middleware';
 import { UpsModule } from '../carriers/ups/ups.module';
 import { UpsAdapter } from '../carriers/ups/ups.adapter';
 import { CARRIERS } from '../carriers/carrier.interface';
+import { AuditLogService } from '../common/services/audit-log.service';
 
 @Module({
   imports: [UpsModule],
   controllers: [RatesController],
   providers: [
     RatesService,
+    AuditLogService,
     {
       provide: CARRIERS,
       useFactory: (ups: UpsAdapter) => [ups],
@@ -18,10 +19,4 @@ import { CARRIERS } from '../carriers/carrier.interface';
     },
   ],
 })
-export class RatesModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(SessionMiddleware)
-      .forRoutes(RatesController);
-  }
-}
+export class RatesModule {}

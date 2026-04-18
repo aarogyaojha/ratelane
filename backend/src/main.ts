@@ -4,9 +4,22 @@ import { HttpExceptionFilter } from './common/errors/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security middleware
+  app.use(helmet());
+
+  // CORS configuration
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3001').split(',');
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
   app.use(cookieParser(process.env.COOKIE_SECRET));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
@@ -17,6 +30,8 @@ async function bootstrap() {
     .setDescription('Shipping carrier rate integration and history API')
     .setVersion('1.0')
     .addTag('rates')
+    .addTag('auth')
+    .addBearerAuth()
     .addCookieAuth('sessionId', {
       type: 'apiKey',
       in: 'cookie',

@@ -13,10 +13,10 @@ export class RatesService {
     @Inject(CARRIERS) private readonly carriers: ICarrier[],
   ) {}
 
-  async getRates(dto: RateRequestDto, sessionId: string) {
+  async getRates(dto: RateRequestDto, userId: string) {
     const request = await this.prisma.rateRequest.create({
       data: {
-        sessionId,
+        userId,
         originZip: dto.originZip,
         destZip: dto.destZip,
         weightLbs: dto.weightLbs,
@@ -63,9 +63,9 @@ export class RatesService {
     return filteredQuotes;
   }
 
-  async getHistory(sessionId: string) {
+  async getHistory(userId: string) {
     return this.prisma.rateRequest.findMany({
-      where: { sessionId },
+      where: { userId },
       include: {
         quotes: true,
       },

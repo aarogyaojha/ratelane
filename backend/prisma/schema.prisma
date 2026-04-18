@@ -10,9 +10,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rateRequests RateRequest[]
+  auditLogs    AuditLog[]
+
+  @@index([email])
+}
+
 model RateRequest {
-  id          String      @id @default(uuid())
-  sessionId   String
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?
   originZip   String
   destZip     String
   weightLbs   Float
@@ -20,9 +36,10 @@ model RateRequest {
   widthIn     Float?
   heightIn    Float?
   serviceCode String?
-  createdAt   DateTime    @default(now())
+  createdAt   DateTime @default(now())
   quotes      RateQuote[]
 
+  @@index([userId])
   @@index([sessionId])
 }
 
@@ -45,4 +62,18 @@ model AuthToken {
   refreshToken String?
   expiresAt    DateTime
   updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  resource  String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
